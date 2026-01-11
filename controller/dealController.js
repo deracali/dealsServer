@@ -884,6 +884,64 @@ export const dislikeDealComment = async (req, res) => {
   }
 };
 
+
+
+
+
+export const rateDeal = async (req, res) => {
+  try {
+    const { id: dealId } = req.params;
+    const { userId, rating } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    if (![1, 2, 3, 4, 5].includes(Number(rating))) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    }
+
+    const deal = await Deal.findById(dealId);
+    if (!deal) {
+      return res.status(404).json({ message: "Deal not found" });
+    }
+
+    // Check if user already rated
+    const existingRating = deal.ratings.find(
+      r => r.userId.toString() === userId.toString()
+    );
+
+    if (existingRating) {
+      // Update rating
+      existingRating.value = Number(rating);
+    } else {
+      // New rating
+      deal.ratings.push({ userId, value: Number(rating) });
+      deal.ratingsCount += 1;
+    }
+
+    // Recalculate average rating
+    const total = deal.ratings.reduce((sum, r) => sum + r.value, 0);
+    deal.averageRating = Number((total / deal.ratings.length).toFixed(1));
+
+    await deal.save();
+
+    return res.status(200).json({
+      message: "Rating saved successfully",
+      averageRating: deal.averageRating,
+      ratingsCount: deal.ratingsCount,
+    });
+
+  } catch (err) {
+    console.error("❌ Rating error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+
+
 // ✅ Upvote Deal
 export const toggleUpvote = async (req, res) => {
   try {

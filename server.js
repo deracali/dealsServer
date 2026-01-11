@@ -218,12 +218,15 @@ passport.deserializeUser(async (id, done) => {
 // ✅ Send Magic Link
 app.post("/api/auth/magiclink", async (req, res) => {
   const { email } = req.body;
+  console.log("📩 Magic link request received for:", email);
 
   try {
     let user = await User.findOne({ email });
+    console.log("🔍 User found:", user ? true : false);
 
-    // ✅ Auto-create user if not found
+    // Auto-create user if not found
     if (!user) {
+      console.log("➕ Creating new user for email:", email);
       user = await User.create({
         email,
         displayName: email.split("@")[0], // fallback name
@@ -236,9 +239,10 @@ app.post("/api/auth/magiclink", async (req, res) => {
         dealsCount: 3,
         dealsPosted: 0,
       });
+      console.log("✅ User created:", user);
     }
 
-    // ✅ Generate one-time magic token
+    // Generate one-time magic token
     const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto
       .createHash("sha256")
@@ -248,11 +252,11 @@ app.post("/api/auth/magiclink", async (req, res) => {
     user.magicTokenHash = tokenHash;
     user.magicTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
+    console.log("🔑 Magic token generated and saved for user:", user.email);
+    console.log("🔗 Magic link:", `http://localhost:5000/api/auth/verify-magic?token=${rawToken}`);
 
-    const magicLink = `http://localhost:5000/api/auth/verify-magic?token=${rawToken}`;
-
-    // ✅ Send email via Resend
-    await resend.emails.send({
+    // Send email via Resend
+    const emailResponse = await resend.emails.send({
       from: "Login <onboarding@resend.dev>",
       to: email,
       subject: "Your Magic Login Link",
@@ -261,7 +265,7 @@ app.post("/api/auth/magiclink", async (req, res) => {
           <h2>🔑 Magic Link Login</h2>
           <p>Hello ${user.displayName},</p>
           <p>Click below to securely log in:</p>
-          <a href="${magicLink}" style="padding:12px 20px;background:#4E61D3;color:#fff;border-radius:6px;text-decoration:none">
+          <a href="http://localhost:5000/api/auth/verify-magic?token=${rawToken}" style="padding:12px 20px;background:#4E61D3;color:#fff;border-radius:6px;text-decoration:none">
             Log In
           </a>
           <p style="margin-top:12px;font-size:12px;color:#666">
@@ -270,6 +274,8 @@ app.post("/api/auth/magiclink", async (req, res) => {
         </div>
       `,
     });
+
+    console.log("📤 Resend response:", emailResponse);
 
     res.json({ message: "Magic link sent" });
   } catch (err) {
@@ -314,7 +320,7 @@ app.get("/api/auth/verify-magic", async (req, res) => {
 
     // ✅ Best UX: redirect to frontend
     res.redirect(
-      `http://localhost:5000/auth/callback?token=${sessionToken}&userId=${user._id}`
+      `http://localhost:3000/callback?token=${sessionToken}&userId=${user._id}`
     );
   } catch (err) {
     console.error(err);
@@ -658,22 +664,35 @@ app.get("/dashboard", (req, res) => {
 
 
 
+// Reusable browser instance
+let browser;
+
+const getBrowser = async () => {
+  if (!browser) {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      userDataDir: "./puppeteer_data", // avoids the "already running" error
+    });
+  }
+  return browser;
+};
+
+// Universal sleep function
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 app.post("/api/analyze-url", async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ message: "URL required" });
 
-  let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    const browserInstance = await getBrowser();
+    const page = await browserInstance.newPage();
 
-    const page = await browser.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout?.(2000); // optional chaining in case it's undefined
 
+    // Use universal sleep instead of Puppeteer wait methods
+    await sleep(2000);
 
     const data = await page.evaluate(() => {
       const getMeta = (name) =>
@@ -681,10 +700,8 @@ app.post("/api/analyze-url", async (req, res) => {
         document.querySelector(`meta[property='${name}']`)?.getAttribute("content") ||
         "";
 
-      const title =
-        getMeta("og:title") || getMeta("twitter:title") || document.title || "";
-      const description =
-        getMeta("description") || getMeta("og:description") || "";
+      const title = getMeta("og:title") || getMeta("twitter:title") || document.title || "";
+      const description = getMeta("description") || getMeta("og:description") || "";
       const images = Array.from(document.images).map((img) => img.src).slice(0, 5);
       const price = getMeta("product:price:amount") || getMeta("og:price:amount") || "";
       const availability = getMeta("og:availability") || "In Stock";
@@ -702,14 +719,21 @@ app.post("/api/analyze-url", async (req, res) => {
       };
     });
 
+    await page.close();
     res.json(data);
   } catch (err) {
     console.error("Failed to analyze URL:", err);
     res.status(500).json({ message: "Failed to analyze URL" });
-  } finally {
-    if (browser) await browser.close();
   }
 });
+
+// Graceful shutdown to close the browser
+const closeBrowser = async () => {
+  if (browser) await browser.close();
+};
+process.on("exit", closeBrowser);
+process.on("SIGINT", () => { closeBrowser().then(() => process.exit()); });
+process.on("SIGTERM", () => { closeBrowser().then(() => process.exit()); });
 
 
 

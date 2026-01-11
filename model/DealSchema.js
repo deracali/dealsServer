@@ -90,6 +90,13 @@ const DealSchema = new Schema(
     expirationDate: { type: String },
     expiresAt: { type: Date },
 
+    ratings: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        value: { type: Number, min: 1, max: 5, required: true },
+      },
+    ],
+
     averageRating: { type: Number, min: 0, max: 5, default: 0 },
     ratingsCount: { type: Number, default: 0 },
 

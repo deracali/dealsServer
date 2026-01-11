@@ -15,7 +15,8 @@ import {
   rejectDeal,
   getDealsByBrand,
   likeDealComment,
-  dislikeDealComment
+  dislikeDealComment,
+  rateDeal
 } from "../controller/dealController.js";
 // import { protect } from "../middleware/authMiddleware.js";
 import fileUpload from "express-fileupload";
@@ -42,6 +43,7 @@ dealsRoute.post("/:id/like", toggleLike);
 dealsRoute.post("/:id/comments", addComment);
 dealsRoute.post("/:id/upvote", toggleUpvote);
 dealsRoute.get("/:id/comments", getComments);
+dealsRoute.post("/:id/rate", rateDeal);
 dealsRoute.post("/:id/comments/:commentId/like", likeDealComment);
 dealsRoute.post("/:id/comments/:commentId/dislike", dislikeDealComment);
 dealsRoute.get("/by-user/:userId", getDealsByUser);
