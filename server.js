@@ -28,7 +28,7 @@ import vendorPlanRoutes from "./route/VendorPlanRoute.js";
 import heroRoutes from "./route/heroRoute.js";
 import orderRouter from "./route/orderRoute.js";
 import groupDealsRoute from "./route/groupDealsRoute.js";
-
+import trendignSearchRoute from "./route/trendingSearchRoute.js";
 
 // ✅ Load env variables
 dotenv.config();
@@ -752,7 +752,7 @@ app.use("/api/vendor-plans", vendorPlanRoutes);
 app.use("/api/heroes", heroRoutes);
 app.use("/api/orders", orderRouter);
 app.use("/api/group-deals", groupDealsRoute);
-
+app.use("/api/trending", trendignSearchRoute);
 
 // ✅ Root endpoint
 app.get("/api", (req, res) => {
