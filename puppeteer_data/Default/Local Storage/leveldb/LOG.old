@@ -1,0 +1,9 @@
+2026/01/07-12:16:16.201 3eb0 Reusing MANIFEST C:\Users\HP\Desktop\Deals-hub-backend\puppeteer_data\Default\Local Storage\leveldb/MANIFEST-000001
+2026/01/07-12:16:16.346 3eb0 Recovering log #3
+2026/01/07-12:16:16.489 3eb0 Reusing old log C:\Users\HP\Desktop\Deals-hub-backend\puppeteer_data\Default\Local Storage\leveldb/000003.log 
+2026/01/07-12:19:37.026 2444 Level-0 table #5: started
+2026/01/07-12:19:37.151 2444 Level-0 table #5: 74729 bytes OK
+2026/01/07-12:19:37.256 2444 Delete type=0 #3
+2026/01/07-12:33:43.920 2444 Level-0 table #7: started
+2026/01/07-12:33:44.221 2444 Level-0 table #7: 128704 bytes OK
+2026/01/07-12:33:44.603 2444 Delete type=0 #4
